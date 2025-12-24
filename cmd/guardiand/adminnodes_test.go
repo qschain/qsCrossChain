@@ -29,19 +29,21 @@ func TestRpc(t *testing.T) {
 	defer conn.Close()
 	vaaRequest := &publicrpcv1.GetSignedVAARequest{}
 	vaaRequest.MessageId = &publicrpcv1.MessageID{}
-	/*vaaRequest.MessageId.EmitterAddress = "000000000000000000000000d85403039f10faa0ad58a1caeb6137eb3f040967"
+	vaaRequest.MessageId.EmitterAddress = "000000000000000000000000f87804a8dcee9ed039ff0e3315b4d8a1890f2801"
 	vaaRequest.MessageId.EmitterChain = publicrpcv1.ChainID(222)
-	vaaRequest.MessageId.Sequence = 6*/
+	vaaRequest.MessageId.Sequence = 1
 
-	vaaRequest.MessageId.EmitterAddress = "000000000000000000000000d73f34428098b44a589f13ad15a0e3d2efe92dbd"
+	/*vaaRequest.MessageId.EmitterAddress = "000000000000000000000000d73f34428098b44a589f13ad15a0e3d2efe92dbd"
 	vaaRequest.MessageId.EmitterChain = publicrpcv1.ChainID(2)
-	vaaRequest.MessageId.Sequence = 0
+	vaaRequest.MessageId.Sequence = 0*/
 	signedVaa, err := c.GetSignedVAA(ctx, vaaRequest)
 
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Printf("%x", signedVaa.VaaBytes)
+	fmt.Println("")
+	fmt.Println("")
 	vaaHex := "0x" + hex.EncodeToString(signedVaa.VaaBytes)
 	fmt.Println(vaaHex)
 

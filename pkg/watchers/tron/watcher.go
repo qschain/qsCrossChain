@@ -176,6 +176,8 @@ const (
 	// It is used as a parameter for the Transfer Verifier.
 	// Value is arbitrary and can be adjusted if it helps performance.
 	PruneHeightDelta = uint64(20)
+	//多少个区块后成为固化块
+	SolidNum = 2
 )
 
 func NewTronWatcher(
@@ -346,13 +348,6 @@ func (w *Watcher) Run(parentCtx context.Context) error {
 	// Subscribe to new message publications. We don't use a timeout here because the LogPollConnector
 	// will keep running. Other connectors will use a timeout internally if appropriate.
 	messageC := make(chan *AbiLogMessagePublished, 2)
-	/*messageSub, err := w.tronConn.WatchLogMessagePublished(ctx, errC, messageC)
-	if err != nil {
-		ethConnectionErrors.WithLabelValues(w.networkName, "subscribe_error").Inc()
-		p2p.DefaultRegistry.AddErrorCount(w.chainID, 1)
-		return fmt.Errorf("failed to subscribe to message publication events: %w", err)
-	}
-	defer messageSub.Unsubscribe()*/
 	go func() {
 		w.tronConn.WatchLogMessagePublished(ctx, errC, messageC)
 	}()
@@ -430,11 +425,6 @@ func (w *Watcher) Run(parentCtx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return nil
-			/*case err := <-messageSub.Err():
-			ethConnectionErrors.WithLabelValues(w.networkName, "subscription_error").Inc()
-			errC <- fmt.Errorf("error while processing message publication subscription: %w", err) //nolint:channelcheck // The watcher will exit anyway
-			p2p.DefaultRegistry.AddErrorCount(w.chainID, 1)
-			return nil*/
 			case ev := <-messageC:
 				blockTime, err := w.getBlockTimeByNum(ctx, int64(ev.Raw.BlockNumber))
 				if err != nil {
@@ -457,12 +447,6 @@ func (w *Watcher) Run(parentCtx context.Context) error {
 	go func() {
 		w.tronConn.SubscribeForBlocks(ctx, errC, headSink)
 	}()
-	/*if err != nil {
-		ethConnectionErrors.WithLabelValues(w.networkName, "header_subscribe_error").Inc()
-		p2p.DefaultRegistry.AddErrorCount(w.chainID, 1)
-		return fmt.Errorf("failed to subscribe to header events: %w", err)
-	}
-	defer headerSubscription.Unsubscribe()*/
 
 	common.RunWithScissors(ctx, errC, "evm_fetch_headers", func(ctx context.Context) error {
 		stats := gossipv1.Heartbeat_Network{ContractAddress: w.contract}
@@ -470,12 +454,6 @@ func (w *Watcher) Run(parentCtx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return nil
-			/*case err := <-headerSubscription.Err():
-			logger.Error("error while processing header subscription", zap.Error(err))
-			ethConnectionErrors.WithLabelValues(w.networkName, "header_subscription_error").Inc()
-			errC <- fmt.Errorf("error while processing header subscription: %w", err) //nolint:channelcheck // The watcher will exit anyway
-			p2p.DefaultRegistry.AddErrorCount(w.chainID, 1)
-			return nil*/
 			case ev := <-headSink:
 				// These two pointers should have been checked before the event was placed on the channel, but just being safe.
 				if ev == nil {
@@ -616,36 +594,6 @@ func (w *Watcher) Run(parentCtx context.Context) error {
 						}
 						continue
 					}
-
-					// It's possible for a transaction to be orphaned and then included in a different block
-					// but with the same tx hash. Drop the observation (it will be re-observed and needs to
-					// wait for the full confirmation time again).
-					/*if tx.blockhash != key.BlockHash {
-						logger.Info("tx got dropped and mined in a different block; the message should have been reobserved",
-							zap.String("msgId", pLock.message.MessageIDString()),
-							zap.String("txHash", pLock.message.TxIDString()),
-							zap.Stringer("blockHash", key.BlockHash),
-							zap.Uint64("observedHeight", pLock.height),
-							zap.Uint64("additionalBlocks", pLock.additionalBlocks),
-							zap.Stringer("current_blockNum", ev.Number),
-							zap.Stringer("finality", ev.Finality),
-							zap.Stringer("current_blockHash", currentHash),
-						)
-						delete(w.pending, key)
-						ethMessagesOrphaned.WithLabelValues(w.networkName, "blockhash_mismatch").Inc()
-						continue
-					}
-
-					logger.Info("observation confirmed",
-						zap.String("msgId", pLock.message.MessageIDString()),
-						zap.String("txHash", pLock.message.TxIDString()),
-						zap.Stringer("blockHash", key.BlockHash),
-						zap.Uint64("observedHeight", pLock.height),
-						zap.Uint64("additionalBlocks", pLock.additionalBlocks),
-						zap.Stringer("current_blockNum", ev.Number),
-						zap.Stringer("finality", ev.Finality),
-						zap.Stringer("current_blockHash", currentHash),
-					)*/
 					delete(w.pending, key)
 
 					// Note that `tx` here is actually a receipt
@@ -928,8 +876,8 @@ func (w *Watcher) verifyAndPublish(
 		return errors.New("verifyAndPublish: message publication cannot be nil")
 	}
 
-	if w.txVerifier != nil {
-		/*verifiedMsg, err := evm.verify(ctx, msg, txHash, receipt, w.txVerifier)
+	/*if w.txVerifier != nil {
+		verifiedMsg, err := evm.verify(ctx, msg, txHash, receipt, w.txVerifier)
 
 		if err != nil {
 			return err
@@ -938,8 +886,13 @@ func (w *Watcher) verifyAndPublish(
 		w.logger.Debug(
 			"verified transfer",
 			msg.ZapFields()...,
-		)*/
+		)
+	}*/
+	verifiedMsg, err := verify(ctx, msg, txHash, info)
+	if err != nil {
+		return err
 	}
+	msg = &verifiedMsg
 
 	w.logger.Debug(
 		"publishing new message publication",

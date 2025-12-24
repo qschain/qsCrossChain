@@ -66,7 +66,7 @@ var (
 	// cclDevnetMap specifies the custom consistency level contracts for each devnet chain.
 	cclDevnetMap = CCLMap{
 		vaa.ChainIDEthereum: "0x13cF0D18BCb898EFD4e85Ae2Bb65A443ab86023C",
-		vaa.ChainIDTron:     "TP1bvZAG9uthLgS8HH2tnuTCaJ8c3LC4gx",
+		vaa.ChainIDTron:     "TA8DSrZasvg4M4p48QvLd8RzeLpeM4F92Y",
 	}
 
 	// cclEmptyData is used to check for an empty response from the contract, meaning the emitter address is not configured for special handling.

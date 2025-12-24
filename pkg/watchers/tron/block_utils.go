@@ -3,10 +3,11 @@ package tron
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 	"math/big"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 )
 
 func GetLatestBlock(ctx context.Context, conn Connector) (*NewBlock, error) {
@@ -34,13 +35,6 @@ func GetBlock(ctx context.Context, conn Connector, str string, blockFinality Fin
 		return nil, fmt.Errorf("failed to unmarshal block for %s: Number is nil", str)
 	}
 	n := m.GetBlockHeader().GetRawData().GetNumber()
-
-	/*var l1bn *big.Int
-	if m.L1BlockNumber != nil {
-		bn := big.Int(*m.L1BlockNumber)
-		l1bn = &bn
-	}*/
-
 	return &NewBlock{
 		Number:        big.NewInt(n),
 		Time:          uint64(m.BlockHeader.RawData.Timestamp),

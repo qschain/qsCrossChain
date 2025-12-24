@@ -686,7 +686,10 @@ func runNode(cmd *cobra.Command, args []string) {
 		if *p2pNetworkID == "" {
 			*p2pNetworkID = p2p.GetNetworkId(env)
 		}
-		*p2pBootstrap = ""
+		if *p2pBootstrap == "" {
+			*p2pBootstrap = ""
+		}
+		//*p2pBootstrap = ""
 		*ccqP2pBootstrap = ""
 	} else { // Mainnet or Testnet.
 		// If the network parameters are not specified, use the defaults. Log a warning if they are specified since we want to discourage this.

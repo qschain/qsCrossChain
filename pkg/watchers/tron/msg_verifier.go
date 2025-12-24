@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"github.com/certusone/wormhole/node/pkg/common"
-	evm_verifier "github.com/certusone/wormhole/node/pkg/txverifier"
 	eth_common "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 )
 
 // verify evaluates a MessagePublication using the Transfer Verifier.
@@ -18,8 +17,8 @@ func verify(
 	ctx context.Context,
 	msg *common.MessagePublication,
 	txHash eth_common.Hash,
-	receipt *types.Receipt,
-	verifier evm_verifier.TransferVerifierInterface,
+	receipt *core.TransactionInfo,
+	//verifier evm_verifier.TransferVerifierInterface,
 ) (common.MessagePublication, error) {
 
 	if msg == nil {
@@ -30,9 +29,9 @@ func verify(
 		return common.MessagePublication{}, fmt.Errorf("MessagePublication already has a non-default verification state")
 	}
 
-	if verifier == nil {
+	/*if verifier == nil {
 		return common.MessagePublication{}, fmt.Errorf("transfer verifier is nil")
-	}
+	}*/
 
 	// Create a local copy of the MessagePublication.
 	localMsg := msg
@@ -43,12 +42,12 @@ func verify(
 	// from the token bridge. This check is also done in the
 	// transfer verifier package, but this helps us skip useless
 	// computation.
-	if evm_verifier.Cmp(localMsg.EmitterAddress, verifier.Addrs().TokenBridgeAddr) != 0 {
+	/*if evm_verifier.Cmp(localMsg.EmitterAddress, verifier.Addrs().TokenBridgeAddr) != 0 {
 		newState = common.NotApplicable
 	} else {
 		newState = state(ctx, localMsg, txHash, receipt, verifier)
-	}
-
+	}*/
+	newState = state(ctx, localMsg, txHash, receipt)
 	// Update the state of the message.
 	updateErr := localMsg.SetVerificationState(newState)
 	if updateErr != nil {
@@ -60,11 +59,11 @@ func verify(
 }
 
 // state returns a verification state based on the results of querying the Transfer Verifier.
-func state(ctx context.Context, msg *common.MessagePublication, txHash eth_common.Hash, receipt *types.Receipt, tv evm_verifier.TransferVerifierInterface) common.VerificationState {
+func state(ctx context.Context, msg *common.MessagePublication, txHash eth_common.Hash, receipt *core.TransactionInfo) common.VerificationState {
 	// Verify the transfer represented by the message by analyzing the transaction receipt.
 	// This is a defense-in-depth mechanism to protect against fraudulent message emissions.
-	valid, err := tv.TransferIsValid(ctx, msg.MessageIDString(), txHash, receipt)
-
+	//valid, err := tv.TransferIsValid(ctx, msg.MessageIDString(), txHash, receipt)
+	valid, err := transferIsValid(ctx, msg.MessageIDString(), txHash, receipt)
 	// The receipt couldn't be processed properly for some reason.
 	if err != nil {
 		return common.CouldNotVerify
@@ -75,4 +74,11 @@ func state(ctx context.Context, msg *common.MessagePublication, txHash eth_commo
 	}
 
 	return common.Valid
+}
+func transferIsValid(ctx context.Context, msgId string, txHash eth_common.Hash, receipt *core.TransactionInfo) (bool, error) {
+	//todo
+	//确认WormholeMessage事件是由Token Bridge合约发出的
+
+	//解析事件中的payload，确保是有效的跨链转账请求
+	return true, nil
 }

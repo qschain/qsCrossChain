@@ -178,11 +178,6 @@ func (c *TronContractClient) FilterEvents1(ctx context.Context, filter *TronEven
 				fmt.Println(err)
 				continue
 			}
-			/*contractAddrStr, err := ContractAddressToBase58(txInfo)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}*/
 			if len(txInfo.Log) > 0 {
 				ethLog, err := c.parseLogs1(
 					txInfo.Log,
@@ -209,12 +204,20 @@ func (c *TronContractClient) FilterEvents1(ctx context.Context, filter *TronEven
 
 // WatchEvents 监听合约事件（持续监听）
 func (c *TronContractClient) WatchEvents1(ctx context.Context, filter *TronEventFilter, logChan chan<- *types.Log, implementAbi *abi.ABI) error {
-	lastCheckedBlock, err := c.Client.Client.GetNowBlock(ctx, nil)
-	if err != nil {
-		return err
+	var lastBlockNum int64 = 0
+	for {
+		lastCheckedBlock, err := c.Client.Client.GetNowBlock(ctx, nil)
+		if err != nil {
+			c.Logger.Error("failed to get latest block", zap.Error(err))
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		//只监听固化块
+		lastBlockNum = lastCheckedBlock.GetBlockHeader().GetRawData().GetNumber() - SolidNum
+		if lastBlockNum >= 1 {
+			break
+		}
 	}
-	lastBlockNum := lastCheckedBlock.GetBlockHeader().GetRawData().GetNumber()
-
 	// 持续轮询新区块
 	for {
 		select {
@@ -228,6 +231,12 @@ func (c *TronContractClient) WatchEvents1(ctx context.Context, filter *TronEvent
 				continue
 			}
 			currentBlockNum := currentBlock.GetBlockHeader().GetRawData().GetNumber()
+			//计算当前固化快的高度
+			currentBlockNum = currentBlockNum - SolidNum
+			if currentBlockNum < 1 {
+				continue
+			}
+
 			if currentBlockNum > lastBlockNum {
 				// 检查新产生的区块
 				for blockNum := lastBlockNum + 1; blockNum <= currentBlockNum; blockNum++ {

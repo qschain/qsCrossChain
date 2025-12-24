@@ -17,11 +17,11 @@ func (f FinalityLevel) String() string {
 	if f == Latest {
 		return "latest"
 	}
-	/*if f == Safe {
+	if f == Safe {
 		return "safe"
 	}
 	if f == Finalized {
 		return "finalized"
-	}*/
+	}
 	return fmt.Sprintf("unknown(%d)", f)
 }
